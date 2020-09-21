@@ -4,7 +4,6 @@ namespace Weskiller\ICBC_APi_SDK;
 
 use Exception;
 use GuzzleHttp\Client;
-use GuzzleHttp\Exception\GuzzleException;
 
 class WebUtils
 {
