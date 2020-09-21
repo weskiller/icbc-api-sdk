@@ -2,7 +2,7 @@
 
 namespace Weskiller\ICBC_APi_SDK;
 
-use GuzzleHttp\Client;
+use Exception;
 
 class DefaultIcbcClient
 {
@@ -17,7 +17,6 @@ class DefaultIcbcClient
     public $encryptType;
     public $ca;
     public $password;
-    public $client;
 
     public function __construct(
         $appId,
@@ -175,20 +174,4 @@ class DefaultIcbcClient
 
         return $array;
     }
-
-    public function getHttpClient()
-    {
-        if ($this->client === null) {
-            return $this->client = new Client();
-        }
-        return $this->client;
-    }
-
-    public function setHttpClient(Client $client)
-    {
-        $this->client = $client;
-        return $this;
-    }
 }
-
-?>

@@ -2,36 +2,29 @@
 
 namespace Weskiller\ICBC_APi_SDK;
 
+use Exception;
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\GuzzleException;
+
 class WebUtils
 {
     private static $version = "v2_20170324";
 
+    /** @var Client  */
+    private static $client;
+
     public static function doGet($url, $params, $charset)
     {
-        $headers = array();
-        $headers[IcbcConstants::$VERSION_HEADER_NAME] = self::$version;
-        $getUrl = self::buildGetUrl($url, $params, $charset);
-
-
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $getUrl);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-
-        curl_setopt($ch, CURLOPT_NOSIGNAL, 1);
-        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT_MS, 8000);
-        curl_setopt($ch, CURLOPT_TIMEOUT_MS, 30000);
-
-
-        $response = curl_exec($ch);
-        $resinfo = curl_getinfo($ch);
-        curl_close($ch);
-
-        if ($resinfo["http_code"] != 200) {
-            throw new Exception("response status code is not valid. status code: " . $resinfo["http_code"]);
+        $response = self::getHttpClient()->get($url,[
+            'timeout' => 3,
+            'query' => $params,
+            'headers' => [
+                IcbcConstants::$VERSION_HEADER_NAME => self::$version,
+            ]
+        ]);
+        if ($response->getStatusCode() !== 200) {
+            throw new Exception("response status code is not valid. status code: " . $response->getStatusCode());
         }
-
-        return $response;
     }
 
     public static function buildGetUrl($strUrl, $params, $charset)
@@ -48,32 +41,18 @@ class WebUtils
 
     public static function doPost($url, $params, $charset)
     {
-        $headers = array();
-        $headers[] = 'Expect:';
-        $headers[IcbcConstants::$VERSION_HEADER_NAME] = self::$version;
-
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($params));
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-
-        curl_setopt($ch, CURLOPT_NOSIGNAL, 1);
-        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT_MS, 8000);
-        curl_setopt($ch, CURLOPT_TIMEOUT_MS, 30000);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-
-
-        $response = curl_exec($ch);
-        $resinfo = curl_getinfo($ch);
-        curl_close($ch);
-
-        if ($resinfo["http_code"] != 200) {
-            throw new Exception("response status code is not valid. status code: " . $resinfo["http_code"]);
+        $response = self::getHttpClient()->post($url, [
+            'timeout' => 3,
+            'form' => $params,
+            'headers' => [
+                "Expect:" => '',
+                IcbcConstants::$VERSION_HEADER_NAME => self::$version,
+            ],
+        ]);
+        if ($response->getStatusCode() !== 200) {
+            throw new Exception("response status code is not valid. status code: " . $response->getStatusCode());
         }
-        return $response;
+        return (string) $response->getBody();
     }
 
     public static function buildOrderedSignStr($path, $params)
@@ -123,6 +102,25 @@ class WebUtils
     public static function buildHiddenField($key, $value)
     {
         return '<input type="hidden" name="' . $key . '" value="' . preg_replace('/"/', '&quot;', $value) . '">' . "\n";
+    }
+
+    /**
+     * @return Client
+     */
+    public static function getHttpClient()
+    {
+        if(self::$client === null) {
+            self::setHttpClient($client = new Client());
+        }
+        return self::$client;
+    }
+
+    /**
+     * @param Client $client
+     */
+    public static function setHttpClient($client)
+    {
+        self::$client = $client;
     }
 }
 
